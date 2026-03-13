@@ -1,14 +1,18 @@
 """
-scraper.py — Phase 2: Greenhouse scraper with deduplication + storage
-Now remembers which jobs it's seen and only surfaces new ones each run.
+scraper.py — Phase 5: Greenhouse + Lever scraper
+Checks both platforms, deduplicates, saves, and emails new matches.
 """
 
 import requests
 from datetime import datetime
-from companies import GREENHOUSE_COMPANIES, SEARCH_KEYWORDS
+from companies import GREENHOUSE_COMPANIES, LEVER_COMPANIES, SEARCH_KEYWORDS
 from storage import load_seen_jobs, save_seen_jobs, filter_new_jobs, save_jobs
 from notifier import send_notification
 
+
+# ─────────────────────────────────────────────
+# GREENHOUSE
+# ─────────────────────────────────────────────
 
 def fetch_greenhouse_jobs(board_token):
     """
@@ -32,6 +36,35 @@ def fetch_greenhouse_jobs(board_token):
         return []
 
 
+# ─────────────────────────────────────────────
+# LEVER
+# ─────────────────────────────────────────────
+
+def fetch_lever_jobs(company_id):
+    """
+    Calls the Lever API for a given company and returns a list of jobs.
+    Lever returns all postings in one call — no pagination needed.
+    """
+    url = f"https://api.lever.co/v0/postings/{company_id}?mode=json"
+
+    try:
+        response = requests.get(url, timeout=10)
+
+        if response.status_code != 200:
+            print(f"  [skipped] {company_id} — status {response.status_code}")
+            return []
+
+        return response.json()
+
+    except requests.exceptions.RequestException as e:
+        print(f"  [error] {company_id} — {e}")
+        return []
+
+
+# ─────────────────────────────────────────────
+# SHARED
+# ─────────────────────────────────────────────
+
 def is_relevant(job_title):
     """
     Returns True if the job title contains any of our search keywords.
@@ -41,60 +74,103 @@ def is_relevant(job_title):
     return any(keyword.lower() in title_lower for keyword in SEARCH_KEYWORDS)
 
 
+def process_greenhouse(company, seen_jobs, all_new_matches):
+    name = company["name"]
+    token = company["board_token"]
+    category = company.get("category", "general")
+
+    print(f"\nChecking {name} (Greenhouse)...")
+    jobs = fetch_greenhouse_jobs(token)
+    relevant = [job for job in jobs if is_relevant(job["title"])]
+    new_jobs, seen_jobs = filter_new_jobs(relevant, seen_jobs)
+
+    if new_jobs:
+        print(f"  ✓ {len(new_jobs)} NEW match(es):")
+        for job in new_jobs:
+            print(f"    - {job['title']}")
+            print(f"      {job.get('absolute_url', 'No URL')}")
+            all_new_matches.append({
+                "id": str(job["id"]),
+                "company": name,
+                "title": job["title"],
+                "url": job.get("absolute_url", ""),
+                "location": job.get("location", {}).get("name", "Not listed"),
+                "source": "Greenhouse",
+                "category": category,
+                "date_found": datetime.now().strftime("%Y-%m-%d"),
+            })
+    elif relevant:
+        print(f"  — {len(relevant)} match(es) found but already seen")
+    else:
+        print(f"  — No matches")
+
+    return seen_jobs
+
+
+def process_lever(company, seen_jobs, all_new_matches):
+    name = company["name"]
+    company_id = company["company_id"]
+    category = company.get("category", "general")
+
+    print(f"\nChecking {name} (Lever)...")
+    jobs = fetch_lever_jobs(company_id)
+    relevant = [job for job in jobs if is_relevant(job.get("text", ""))]
+    new_jobs, seen_jobs = filter_new_jobs(relevant, seen_jobs)
+
+    if new_jobs:
+        print(f"  ✓ {len(new_jobs)} NEW match(es):")
+        for job in new_jobs:
+            print(f"    - {job['text']}")
+            print(f"      {job.get('hostedUrl', 'No URL')}")
+            all_new_matches.append({
+                "id": job["id"],
+                "company": name,
+                "title": job["text"],
+                "url": job.get("hostedUrl", ""),
+                "location": job.get("categories", {}).get("location", "Not listed"),
+                "source": "Lever",
+                "category": category,
+                "date_found": datetime.now().strftime("%Y-%m-%d"),
+            })
+    elif relevant:
+        print(f"  — {len(relevant)} match(es) found but already seen")
+    else:
+        print(f"  — No matches")
+
+    return seen_jobs
+
+
+# ─────────────────────────────────────────────
+# MAIN
+# ─────────────────────────────────────────────
+
 def run_scraper():
     print("=" * 50)
     print(f"Job Scraper — {datetime.now().strftime('%Y-%m-%d %H:%M')}")
     print("=" * 50)
 
-    # Load the IDs of jobs we've already seen
     seen_jobs = load_seen_jobs()
     print(f"\nPreviously seen jobs: {len(seen_jobs)}")
 
     all_new_matches = []
 
+    # --- Greenhouse ---
+    print("\n--- Greenhouse ---")
     for company in GREENHOUSE_COMPANIES:
-        name = company["name"]
-        token = company["board_token"]
+        seen_jobs = process_greenhouse(company, seen_jobs, all_new_matches)
 
-        print(f"\nChecking {name}...")
-        jobs = fetch_greenhouse_jobs(token)
+    # --- Lever ---
+    print("\n--- Lever ---")
+    for company in LEVER_COMPANIES:
+        seen_jobs = process_lever(company, seen_jobs, all_new_matches)
 
-        # Filter by keyword first
-        relevant = [job for job in jobs if is_relevant(job["title"])]
-
-        # Then filter out ones we've already seen
-        new_jobs, seen_jobs = filter_new_jobs(relevant, seen_jobs)
-
-        if new_jobs:
-            print(f"  ✓ {len(new_jobs)} NEW match(es):")
-            for job in new_jobs:
-                print(f"    - {job['title']}")
-                print(f"      {job.get('absolute_url', 'No URL')}")
-
-                # Build a clean record to save
-                all_new_matches.append({
-                    "id": str(job["id"]),
-                    "company": name,
-                    "title": job["title"],
-                    "url": job.get("absolute_url", ""),
-                    "location": job.get("location", {}).get("name", "Not listed"),
-                    "date_found": datetime.now().strftime("%Y-%m-%d"),
-                })
-        elif relevant:
-            print(f"  — {len(relevant)} match(es) found but already seen")
-        else:
-            print(f"  — No matches")
-
-    # Save everything
+    # --- Save + notify ---
     if all_new_matches:
         save_jobs(all_new_matches)
 
     save_seen_jobs(seen_jobs)
-
-    # Send email digest
     send_notification(all_new_matches)
 
-    # Summary
     print("\n" + "=" * 50)
     print(f"Done. {len(all_new_matches)} new job(s) found this run.")
     print("=" * 50)

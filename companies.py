@@ -12,20 +12,29 @@ Targeting: Food Tech, Restaurant Tech, Contract Food Service, CPG/Food Manufactu
 
 GREENHOUSE_COMPANIES = [
     # --- Food Tech / Restaurant Tech ---
-    {"name": "Toast",           "board_token": "toast"},
-    {"name": "Afresh",          "board_token": "afresh"},
-    {"name": "Flipdish",        "board_token": "flipdish"},
-    {"name": "Sweetgreen",      "board_token": "sweetgreen"},
-    {"name": "DoorDash",        "board_token": "doordashusa"},
-    {"name": "Too Good To Go",  "board_token": "toogoodtogo"},
+    {"name": "Toast",           "board_token": "toast",         "category": "food"},
+    {"name": "Afresh",          "board_token": "afresh",        "category": "food"},
+    {"name": "Flipdish",        "board_token": "flipdish",      "category": "food"},
+    {"name": "Sweetgreen",      "board_token": "sweetgreen",    "category": "food"},
+    {"name": "DoorDash",        "board_token": "doordashusa",   "category": "food"},
+    {"name": "Too Good To Go",  "board_token": "toogoodtogo",   "category": "food"},
 
     # --- CPG / Food Manufacturing ---
-    {"name": "Daily Harvest",   "board_token": "dailyharvest"},
-    {"name": "Misfits Market",  "board_token": "misfitsmarket"},
-    {"name": "Vega",            "board_token": "vega"},
+    {"name": "Daily Harvest",   "board_token": "dailyharvest",  "category": "food"},
+    {"name": "Misfits Market",  "board_token": "misfitsmarket", "category": "food"},
+    {"name": "Vega",            "board_token": "vega",          "category": "food"},
 
     # --- Grocery Tech ---
-    {"name": "Instacart",       "board_token": "instacart"},
+    {"name": "Instacart",       "board_token": "instacart",     "category": "food"},
+
+    # --- Analytics / BI (broader targets) ---
+    {"name": "Amplitude",       "board_token": "amplitude",      "category": "analytics"},
+    {"name": "Mixpanel",        "board_token": "mixpanel",       "category": "analytics"},
+    {"name": "Fivetran",        "board_token": "fivetran",       "category": "analytics"},
+    {"name": "Hightouch",       "board_token": "hightouch",      "category": "analytics"},
+    {"name": "Monte Carlo",     "board_token": "montecarlo",     "category": "analytics"},
+    {"name": "Airbyte",         "board_token": "airbytehq",      "category": "analytics"},
+    {"name": "dbt Labs",        "board_token": "dbtlabs",        "category": "analytics"},
 ]
 
 
@@ -36,14 +45,17 @@ GREENHOUSE_COMPANIES = [
 
 LEVER_COMPANIES = [
     # --- Food Tech / Restaurant Tech ---
-    {"name": "Olo",              "company_id": "olo"},
-    {"name": "ChowNow",          "company_id": "chownow"},
-    {"name": "Restaurant365",    "company_id": "restaurant365"},
-    {"name": "Chef Robotics",    "company_id": "ChefRobotics"},
-    {"name": "Foodsmart",        "company_id": "foodsmart"},
+    {"name": "Olo",              "company_id": "olo",            "category": "food"},
+    {"name": "ChowNow",          "company_id": "chownow",        "category": "food"},
+    {"name": "Restaurant365",    "company_id": "restaurant365",  "category": "food"},
+    {"name": "Chef Robotics",    "company_id": "ChefRobotics",   "category": "food"},
+    {"name": "Foodsmart",        "company_id": "foodsmart",      "category": "food"},
 
     # --- Grocery / Delivery ---
-    {"name": "Gopuff",           "company_id": "gopuff"},
+    {"name": "Gopuff",           "company_id": "gopuff",         "category": "food"},
+
+    # --- Analytics / BI (broader targets) ---
+    {"name": "Metabase",         "company_id": "metabase",       "category": "analytics"},
 ]
 
 
