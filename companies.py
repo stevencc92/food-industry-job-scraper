@@ -12,47 +12,17 @@ Targeting: Food Tech, Restaurant Tech, Contract Food Service, CPG/Food Manufactu
 
 GREENHOUSE_COMPANIES = [
     # --- Food Tech / Restaurant Tech ---
-    {"name": "Toast",           "board_token": "toastinc"},
-    {"name": "Olo",             "board_token": "olo"},
-    {"name": "Chowly",          "board_token": "chowly"},
-    {"name": "Incentivio",      "board_token": "incentivio"},
-    {"name": "Flipdish",        "board_token": "flipdish"},
-    {"name": "Deliverect",      "board_token": "deliverect"},
-    {"name": "Lunchbox",        "board_token": "lunchbox"},
-    {"name": "Ovation",         "board_token": "ovation"},
-    {"name": "Popmenu",         "board_token": "popmenu"},
-    {"name": "Restaurant365",   "board_token": "restaurant365"},
-    {"name": "Slingshot",       "board_token": "slingshotinsights"},
-    {"name": "Tastewise",       "board_token": "tastewise"},
-    {"name": "Afresh",          "board_token": "afresh"},
-    {"name": "Galley Solutions","board_token": "galleysolutions"},
-    {"name": "Meez",            "board_token": "meez"},
-    {"name": "Kitchenary",      "board_token": "kitchenary"},
-
-    # --- Contract Food Service ---
-    {"name": "Aramark",         "board_token": "aramark"},
-    {"name": "Compass Group",   "board_token": "compassgroupusa"},
-    {"name": "Eurest",          "board_token": "eurest"},          # Compass sub-brand
-    {"name": "Canteen",         "board_token": "canteen"},         # Compass sub-brand
+    {"name": "Toast",        "board_token": "toast"},
+    {"name": "Afresh",       "board_token": "afresh"},
+    {"name": "Flipdish",     "board_token": "flipdish"},
 
     # --- CPG / Food Manufacturing ---
-    {"name": "Impossible Foods","board_token": "impossiblefoods"},
-    {"name": "Oatly",           "board_token": "oatly"},
-    {"name": "Chobani",         "board_token": "chobani"},
-    {"name": "Daily Harvest",   "board_token": "dailyharvest"},
-    {"name": "Bright Farms",    "board_token": "brightfarms"},
-    {"name": "Gotham Greens",   "board_token": "gothamgreens"},
-    {"name": "Apeel Sciences",  "board_token": "apeelsciences"},
-    {"name": "Miyoko's Creamery","board_token": "miyokos"},
-    {"name": "Ripple Foods",    "board_token": "ripplefoods"},
-    {"name": "Vega",            "board_token": "vega"},
+    {"name": "Daily Harvest","board_token": "dailyharvest"},
+    {"name": "Misfits Market","board_token": "misfitsmarket"},
+    {"name": "Vega",         "board_token": "vega"},
 
-    # --- Grocery Tech / Food Delivery ---
-    {"name": "Instacart",       "board_token": "instacart"},
-    {"name": "Good Food Institute", "board_token": "gfi"},
-    {"name": "Foodshed",        "board_token": "foodshed"},
-    {"name": "Misfits Market",  "board_token": "misfitsmarket"},
-    {"name": "Imperfect Foods", "board_token": "imperfectfoods"},
+    # --- Grocery Tech ---
+    {"name": "Instacart",    "board_token": "instacart"},
 ]
 
 
@@ -63,6 +33,8 @@ GREENHOUSE_COMPANIES = [
 
 LEVER_COMPANIES = [
     # --- Food Tech / Restaurant Tech ---
+    {"name": "Olo",             "company_id": "olo"},           # confirmed on Lever
+    {"name": "Impossible Foods","company_id": "impossiblefoods"}, # confirmed on Lever
     {"name": "SevenRooms",      "company_id": "sevenrooms"},
     {"name": "Revel Systems",   "company_id": "revelsystems"},
     {"name": "SpotOn",          "company_id": "spoton"},
@@ -72,11 +44,12 @@ LEVER_COMPANIES = [
     {"name": "Notch",           "company_id": "notchfinancial"},
     {"name": "Spoiler Alert",   "company_id": "spoileralert"},
     {"name": "Shelf Engine",    "company_id": "shelfengine"},
+    {"name": "ChowNow",         "company_id": "chownow"},       # confirmed on Lever
 
     # --- Contract Food Service ---
     {"name": "Sodexo",          "company_id": "sodexo"},
     {"name": "Elior North America", "company_id": "elior"},
-    {"name": "Flik Hospitality","company_id": "flikhospitality"},  # Compass sub-brand
+    {"name": "Flik Hospitality","company_id": "flikhospitality"},
 
     # --- CPG / Food Manufacturing ---
     {"name": "Perfect Day",     "company_id": "perfectday"},
