@@ -12,17 +12,20 @@ Targeting: Food Tech, Restaurant Tech, Contract Food Service, CPG/Food Manufactu
 
 GREENHOUSE_COMPANIES = [
     # --- Food Tech / Restaurant Tech ---
-    {"name": "Toast",        "board_token": "toast"},
-    {"name": "Afresh",       "board_token": "afresh"},
-    {"name": "Flipdish",     "board_token": "flipdish"},
+    {"name": "Toast",           "board_token": "toast"},
+    {"name": "Afresh",          "board_token": "afresh"},
+    {"name": "Flipdish",        "board_token": "flipdish"},
+    {"name": "Sweetgreen",      "board_token": "sweetgreen"},
+    {"name": "DoorDash",        "board_token": "doordashusa"},
+    {"name": "Too Good To Go",  "board_token": "toogoodtogo"},
 
     # --- CPG / Food Manufacturing ---
-    {"name": "Daily Harvest","board_token": "dailyharvest"},
-    {"name": "Misfits Market","board_token": "misfitsmarket"},
-    {"name": "Vega",         "board_token": "vega"},
+    {"name": "Daily Harvest",   "board_token": "dailyharvest"},
+    {"name": "Misfits Market",  "board_token": "misfitsmarket"},
+    {"name": "Vega",            "board_token": "vega"},
 
     # --- Grocery Tech ---
-    {"name": "Instacart",    "board_token": "instacart"},
+    {"name": "Instacart",       "board_token": "instacart"},
 ]
 
 
@@ -33,8 +36,14 @@ GREENHOUSE_COMPANIES = [
 
 LEVER_COMPANIES = [
     # --- Food Tech / Restaurant Tech ---
-    {"name": "Olo",     "company_id": "olo"},      # confirmed — no matches yet
-    {"name": "ChowNow", "company_id": "chownow"},  # confirmed — active matches
+    {"name": "Olo",              "company_id": "olo"},
+    {"name": "ChowNow",          "company_id": "chownow"},
+    {"name": "Restaurant365",    "company_id": "restaurant365"},
+    {"name": "Chef Robotics",    "company_id": "ChefRobotics"},
+    {"name": "Foodsmart",        "company_id": "foodsmart"},
+
+    # --- Grocery / Delivery ---
+    {"name": "Gopuff",           "company_id": "gopuff"},
 ]
 
 
