@@ -33,36 +33,8 @@ GREENHOUSE_COMPANIES = [
 
 LEVER_COMPANIES = [
     # --- Food Tech / Restaurant Tech ---
-    {"name": "Olo",             "company_id": "olo"},           # confirmed on Lever
-    {"name": "Impossible Foods","company_id": "impossiblefoods"}, # confirmed on Lever
-    {"name": "SevenRooms",      "company_id": "sevenrooms"},
-    {"name": "Revel Systems",   "company_id": "revelsystems"},
-    {"name": "SpotOn",          "company_id": "spoton"},
-    {"name": "Eataly",          "company_id": "eataly"},
-    {"name": "Tock",            "company_id": "tock"},
-    {"name": "Resy",            "company_id": "resy"},
-    {"name": "Notch",           "company_id": "notchfinancial"},
-    {"name": "Spoiler Alert",   "company_id": "spoileralert"},
-    {"name": "Shelf Engine",    "company_id": "shelfengine"},
-    {"name": "ChowNow",         "company_id": "chownow"},       # confirmed on Lever
-
-    # --- Contract Food Service ---
-    {"name": "Sodexo",          "company_id": "sodexo"},
-    {"name": "Elior North America", "company_id": "elior"},
-    {"name": "Flik Hospitality","company_id": "flikhospitality"},
-
-    # --- CPG / Food Manufacturing ---
-    {"name": "Perfect Day",     "company_id": "perfectday"},
-    {"name": "Eat Just",        "company_id": "eatjust"},
-    {"name": "Nature's Fynd",   "company_id": "naturesfynd"},
-    {"name": "Tender Food",     "company_id": "tenderfood"},
-    {"name": "Motif FoodWorks", "company_id": "motiffoodworks"},
-
-    # --- Grocery Tech / Supply Chain ---
-    {"name": "Crisp",           "company_id": "crisp"},
-    {"name": "KeHE Distributors","company_id": "kehe"},
-    {"name": "Produce Pay",     "company_id": "producepay"},
-    {"name": "AgriForce",       "company_id": "agriforce"},
+    {"name": "Olo",     "company_id": "olo"},      # confirmed — no matches yet
+    {"name": "ChowNow", "company_id": "chownow"},  # confirmed — active matches
 ]
 
 
