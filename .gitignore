@@ -1,0 +1,7 @@
+.env
+venv/
+seen_jobs.json
+jobs.json
+__pycache__/
+logs/
+*.plist
