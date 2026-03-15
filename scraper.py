@@ -5,7 +5,7 @@ Checks both platforms, deduplicates, saves, and emails new matches.
 
 import requests
 from datetime import datetime
-from companies import GREENHOUSE_COMPANIES, LEVER_COMPANIES, WORKDAY_COMPANIES, SEARCH_KEYWORDS
+from companies import GREENHOUSE_COMPANIES, LEVER_COMPANIES, WORKDAY_COMPANIES, ASHBY_COMPANIES, SEARCH_KEYWORDS
 from storage import load_seen_jobs, save_seen_jobs, filter_new_jobs, save_jobs
 from notifier import send_notification
 
@@ -238,6 +238,73 @@ def process_workday(company, seen_jobs, all_new_matches):
     return seen_jobs
 
 
+# ─────────────────────────────────────────────
+# ASHBY
+# ─────────────────────────────────────────────
+
+def fetch_ashby_jobs(company_id):
+    """
+    Calls Ashby's official public job board API.
+    Returns a list of public job postings.
+    Docs: https://developers.ashbyhq.com/docs/public-job-posting-api
+    """
+    url = f"https://api.ashbyhq.com/posting-api/job-board/{company_id}"
+
+    try:
+        response = requests.get(url, timeout=10)
+
+        if response.status_code == 404:
+            print(f"  [skipped] {company_id} — not found")
+            return []
+
+        if response.status_code != 200:
+            print(f"  [skipped] {company_id} — status {response.status_code}")
+            return []
+
+        data = response.json()
+        return [j for j in data.get("jobs", []) if j.get("isListed")]
+
+    except requests.exceptions.RequestException as e:
+        print(f"  [error] {company_id} — {e}")
+        return []
+
+
+def process_ashby(company, seen_jobs, all_new_matches):
+    name = company["name"]
+    company_id = company["company_id"]
+    category = company.get("category", "general")
+
+    print(f"\nChecking {name} (Ashby)...")
+    jobs = fetch_ashby_jobs(company_id)
+    relevant = [job for job in jobs if is_relevant(job.get("title", ""))]
+    new_jobs, seen_jobs = filter_new_jobs(relevant, seen_jobs)
+
+    if new_jobs:
+        print(f"  ✓ {len(new_jobs)} NEW match(es):")
+        for job in new_jobs:
+            title = job.get("title", "No title")
+            location = job.get("location", "Not listed")
+            job_url = job.get("jobUrl") or f"https://jobs.ashbyhq.com/{company_id}/{job['id']}"
+
+            print(f"    - {title}")
+            print(f"      {job_url}")
+
+            all_new_matches.append({
+                "id": job["id"],
+                "company": name,
+                "title": title,
+                "url": job_url,
+                "location": location,
+                "source": "Ashby",
+                "category": category,
+                "date_found": datetime.now().strftime("%Y-%m-%d"),
+            })
+    elif relevant:
+        print(f"  — {len(relevant)} match(es) found but already seen")
+    else:
+        print(f"  — No matches")
+
+    return seen_jobs
 
 
 def run_scraper():
@@ -264,6 +331,11 @@ def run_scraper():
     print("\n--- Workday ---")
     for company in WORKDAY_COMPANIES:
         seen_jobs = process_workday(company, seen_jobs, all_new_matches)
+
+    # --- Ashby ---
+    print("\n--- Ashby ---")
+    for company in ASHBY_COMPANIES:
+        seen_jobs = process_ashby(company, seen_jobs, all_new_matches)
 
     # --- Save + notify ---
     if all_new_matches:

@@ -32,9 +32,7 @@ GREENHOUSE_COMPANIES = [
     {"name": "Mixpanel",        "board_token": "mixpanel",       "category": "analytics"},
     {"name": "Fivetran",        "board_token": "fivetran",       "category": "analytics"},
     {"name": "Hightouch",       "board_token": "hightouch",      "category": "analytics"},
-    {"name": "Monte Carlo",     "board_token": "montecarlo",     "category": "analytics"},
-    {"name": "Airbyte",         "board_token": "airbytehq",      "category": "analytics"},
-    {"name": "dbt Labs",        "board_token": "dbtlabs",        "category": "analytics"},
+    {"name": "dbt Labs",        "board_token": "dbtlabsinc",     "category": "analytics"},
 ]
 
 
@@ -115,7 +113,21 @@ WORKDAY_COMPANIES = [
 
 
 # ─────────────────────────────────────────────
-# SEARCH KEYWORDS
+# ASHBY COMPANIES
+# API endpoint: https://jobs.ashbyhq.com/api/non-user-graphql
+# company_id is the slug from jobs.ashbyhq.com/{slug}
+# ─────────────────────────────────────────────
+
+ASHBY_COMPANIES = [
+    # --- Analytics / BI --- (confirmed on Ashby)
+    {"name": "Monte Carlo",     "company_id": "montecarlodata", "category": "analytics"},
+    {"name": "Lightdash",       "company_id": "lightdash",      "category": "analytics"},
+    {"name": "Cube Dev",        "company_id": "cube",           "category": "analytics"},
+    {"name": "Airbyte",         "company_id": "airbyte",        "category": "analytics"},
+]
+
+
+
 # Used to filter jobs across all platforms
 # ─────────────────────────────────────────────
 
@@ -161,7 +173,7 @@ SEARCH_KEYWORDS = [
 # QUICK STATS (for README / logging)
 # ─────────────────────────────────────────────
 
-ALL_COMPANIES = GREENHOUSE_COMPANIES + LEVER_COMPANIES + WORKDAY_COMPANIES
+ALL_COMPANIES = GREENHOUSE_COMPANIES + LEVER_COMPANIES + WORKDAY_COMPANIES + ASHBY_COMPANIES
 
 if __name__ == "__main__":
     print(f"Total companies: {len(ALL_COMPANIES)}")
