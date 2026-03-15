@@ -68,48 +68,48 @@ LEVER_COMPANIES = [
 # ─────────────────────────────────────────────
 
 WORKDAY_COMPANIES = [
-    # --- Contract Food Service ---
-    {
-        "name": "Aramark (Workday fallback)",
-        "url": "https://aramark.wd5.myworkdayjobs.com/wday/cxs/aramark/Aramark_Careers/jobs",
-    },
-    {
-        "name": "Sodexo (Workday fallback)",
-        "url": "https://sodexo.wd3.myworkdayjobs.com/wday/cxs/sodexo/SodexoUSA/jobs",
-    },
+    # --- Food & Hospitality ---
     {
         "name": "Sysco",
-        "url": "https://sysco.wd5.myworkdayjobs.com/wday/cxs/sysco/Sysco_External/jobs",
+        "url": "https://sysco.wd5.myworkdayjobs.com/wday/cxs/sysco/syscocareers/jobs",
+        "category": "food",
     },
-    {
-        "name": "US Foods",
-        "url": "https://usfoods.wd1.myworkdayjobs.com/wday/cxs/usfoods/USFoods/jobs",
-    },
-
-    # --- CPG / Food Manufacturing ---
     {
         "name": "Kraft Heinz",
-        "url": "https://kraftheinz.wd5.myworkdayjobs.com/wday/cxs/kraftheinz/KraftHeinzCareers/jobs",
+        "url": "https://heinz.wd1.myworkdayjobs.com/wday/cxs/heinz/KraftHeinz_Careers/jobs",
+        "category": "food",
     },
     {
         "name": "Conagra Brands",
-        "url": "https://conagra.wd5.myworkdayjobs.com/wday/cxs/conagra/Conagra/jobs",
-    },
-    {
-        "name": "Post Holdings",
-        "url": "https://post.wd1.myworkdayjobs.com/wday/cxs/post/PostHoldings/jobs",
-    },
-    {
-        "name": "Hershey",
-        "url": "https://hershey.wd5.myworkdayjobs.com/wday/cxs/hershey/HersheyCareers/jobs",
+        "url": "https://conagrabrands.wd1.myworkdayjobs.com/wday/cxs/conagrabrands/Careers_US/jobs",
+        "category": "food",
     },
     {
         "name": "McCormick",
         "url": "https://mccormick.wd5.myworkdayjobs.com/wday/cxs/mccormick/McCormick/jobs",
+        "category": "food",
+    },
+
+    # --- Analytics / BI ---
+    {
+        "name": "Leidos",
+        "url": "https://leidos.wd5.myworkdayjobs.com/wday/cxs/leidos/External/jobs",
+        "category": "analytics",
     },
     {
-        "name": "TreeHouse Foods",
-        "url": "https://treehousefoods.wd1.myworkdayjobs.com/wday/cxs/treehousefoods/TreeHouseFoods/jobs",
+        "name": "Analog Devices",
+        "url": "https://analogdevices.wd1.myworkdayjobs.com/wday/cxs/analogdevices/External/jobs",
+        "category": "analytics",
+    },
+    {
+        "name": "BeOne Medicines",
+        "url": "https://beigene.wd5.myworkdayjobs.com/wday/cxs/beigene/BeiGene/jobs",
+        "category": "analytics",
+    },
+    {
+        "name": "Rosendin",
+        "url": "https://rosendin.wd1.myworkdayjobs.com/wday/cxs/rosendin/Careers/jobs",
+        "category": "analytics",
     },
 ]
 
@@ -144,6 +144,16 @@ SEARCH_KEYWORDS = [
     "associate analyst",
     "analyst I",
     "data associate",
+
+    # Internships
+    "data intern",
+    "analytics intern",
+    "analyst intern",
+    "business intelligence intern",
+    "BI intern",
+    "data engineering intern",
+    "reporting intern",
+    "insights intern",
 ]
 
 

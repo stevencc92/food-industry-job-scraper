@@ -5,7 +5,7 @@ Checks both platforms, deduplicates, saves, and emails new matches.
 
 import requests
 from datetime import datetime
-from companies import GREENHOUSE_COMPANIES, LEVER_COMPANIES, SEARCH_KEYWORDS
+from companies import GREENHOUSE_COMPANIES, LEVER_COMPANIES, WORKDAY_COMPANIES, SEARCH_KEYWORDS
 from storage import load_seen_jobs, save_seen_jobs, filter_new_jobs, save_jobs
 from notifier import send_notification
 
@@ -141,8 +141,104 @@ def process_lever(company, seen_jobs, all_new_matches):
 
 
 # ─────────────────────────────────────────────
-# MAIN
+# WORKDAY
 # ─────────────────────────────────────────────
+
+def fetch_workday_jobs(url, keyword):
+    """
+    Calls the Workday hidden POST endpoint for a given company.
+    Workday requires a POST request with a JSON body containing the search term.
+    Returns a list of job postings.
+    """
+    headers = {
+        "Content-Type": "application/json",
+        "User-Agent": "Mozilla/5.0",
+    }
+
+    # This is the payload Workday expects — search term plus pagination
+    payload = {
+        "appliedFacets": {},
+        "limit": 20,
+        "offset": 0,
+        "searchText": keyword,
+    }
+
+    try:
+        response = requests.post(url, json=payload, headers=headers, timeout=15)
+
+        if response.status_code != 200:
+            print(f"  [skipped] status {response.status_code}")
+            return []
+
+        data = response.json()
+        return data.get("jobPostings", [])
+
+    except requests.exceptions.RequestException as e:
+        print(f"  [error] {e}")
+        return []
+
+
+def process_workday(company, seen_jobs, all_new_matches):
+    name = company["name"]
+    url = company["url"]
+    category = company.get("category", "general")
+
+    print(f"\nChecking {name} (Workday)...")
+
+    # Search once per keyword and collect all unique results
+    seen_in_this_run = set()
+    all_jobs = []
+
+    for keyword in SEARCH_KEYWORDS:
+        jobs = fetch_workday_jobs(url, keyword)
+        for job in jobs:
+            job_id = job.get("bulletFields", [""])[0] + job.get("title", "")
+            if job_id not in seen_in_this_run:
+                seen_in_this_run.add(job_id)
+                all_jobs.append(job)
+
+    # Filter by keyword match on title
+    relevant = [job for job in all_jobs if is_relevant(job.get("title", ""))]
+
+    # Workday uses externalPath as a unique ID
+    # We build a synthetic ID from the title + path since there's no clean numeric ID
+    for job in relevant:
+        job["id"] = job.get("externalPath", job.get("title", "")).strip("/").replace("/", "-")
+
+    new_jobs, seen_jobs = filter_new_jobs(relevant, seen_jobs)
+
+    if new_jobs:
+        print(f"  ✓ {len(new_jobs)} NEW match(es):")
+        for job in new_jobs:
+            title = job.get("title", "No title")
+            path = job.get("externalPath", "")
+            # Build the full URL from the base domain + the job path
+            base = url.split("/wday/")[0]
+            job_url = f"{base}{path}" if path else base
+            location = job.get("locationsText", "Not listed")
+
+            print(f"    - {title}")
+            print(f"      {job_url}")
+
+            all_new_matches.append({
+                "id": job["id"],
+                "company": name,
+                "title": title,
+                "url": job_url,
+                "location": location,
+                "source": "Workday",
+                "category": category,
+                "date_found": datetime.now().strftime("%Y-%m-%d"),
+            })
+    elif relevant:
+        print(f"  — {len(relevant)} match(es) found but already seen")
+    else:
+        print(f"  — No matches")
+
+    return seen_jobs
+
+
+
 
 def run_scraper():
     print("=" * 50)
@@ -163,6 +259,11 @@ def run_scraper():
     print("\n--- Lever ---")
     for company in LEVER_COMPANIES:
         seen_jobs = process_lever(company, seen_jobs, all_new_matches)
+
+    # --- Workday ---
+    print("\n--- Workday ---")
+    for company in WORKDAY_COMPANIES:
+        seen_jobs = process_workday(company, seen_jobs, all_new_matches)
 
     # --- Save + notify ---
     if all_new_matches:
