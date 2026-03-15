@@ -1,124 +1,294 @@
-# Food Industry Job Scraper
 
-An automated job monitoring tool that tracks analytics and data roles across food tech, restaurant technology, contract food service, and CPG food companies.
+# Automated ATS Job Discovery Pipeline
 
-Built as part of a career transition from food service operations into data analytics. The company list and search keywords were put together deliberately, targeting verticals where a background in professional kitchens might be relevant rather than incidental.
+A Python-based job discovery pipeline that monitors multiple applicant tracking systems (ATS) — including **Greenhouse, Lever, Workday, and Ashby** — to surface new analytics and data roles before they appear on high-volume job boards like LinkedIn.
 
----
+The system pulls job postings directly from company hiring platforms, filters them for relevant roles, deduplicates previously seen postings, and sends a daily email digest of newly discovered opportunities.
 
-## Why This Exists
-
-Checking 75 company job boards manually every day isn't realistic. This tool does it automatically and sends an email digest of new postings since the last run, so the searching happens in the background.
-
-The target companies were chosen with some intention. Places like Afresh, Toast, and Olo are working on problems that show up in real kitchen and food service environments -- food waste, inventory, operational data. Having spent time in those environments felt like a reasonable reason to pay closer attention to what those companies are hiring for.
+Originally built to support a targeted job search in **food tech, restaurant technology, contract food service, and CPG food companies**, but the architecture is designed to work with any company using supported ATS platforms.
 
 ---
 
-## How It Works
+# Why This Exists
 
-The scraper is organized into four modules:
+Most job seekers rely on job aggregators like LinkedIn or Indeed.
 
-**`companies.py`** — The master list of target companies, organized by ATS platform (Greenhouse, Lever, Workday) and paired with a curated list of relevant job title keywords.
+By the time a role appears there, it often already has dozens or hundreds of applicants.
 
-**`scraper.py`** — The main engine. Loops through each company, calls the Greenhouse API, filters results by keyword, and hands matches off to storage and notifications.
+Many companies publish jobs directly to their **applicant tracking systems first**, and only later to aggregators.
 
-**`storage.py`** — Handles persistence. Saves matches to `jobs.json` and maintains a `seen_jobs.json` file so the scraper only surfaces genuinely new postings on each run — not the same 11 jobs every morning.
-
-**`notifier.py`** — Sends a plain-text email digest via Gmail SMTP whenever new matches are found. Credentials are stored in a local `.env` file and never committed to version control.
-
-Scheduling is handled by **macOS launchd** via a `.plist` configuration file — the scraper runs automatically each morning without any manual intervention.
-
----
-
-## Target Companies (Greenhouse — Phase 1)
-
-A selection of the companies currently monitored:
-
-| Company | Vertical |
-|---|---|
-| Toast | Restaurant Tech |
-| Olo | Restaurant Tech |
-| SevenRooms | Restaurant Tech |
-| Afresh | Food Tech / Waste Reduction |
-| Instacart | Grocery Tech |
-| Impossible Foods | CPG / Alt Protein |
-| Chobani | CPG / Food Manufacturing |
-| Daily Harvest | CPG / DTC Food |
-| Aramark | Contract Food Service |
-| Compass Group | Contract Food Service |
-| Sodexo | Contract Food Service |
-
-75 companies total across Greenhouse, Lever, and Workday platforms.
-
----
-
-## Tech Stack
-
-- **Python 3.12**
-- `requests` — API calls to Greenhouse
-- `python-dotenv` — Credential management
-- `smtplib` — Email delivery via Gmail SMTP
-- **macOS launchd** — Scheduling
-
----
-
-## Project Structure
+This project monitors those systems directly to reduce the time between:
 
 ```
-job-scraper/
-├── companies.py        # Master company + keyword list
-├── scraper.py          # Main scraper logic
-├── storage.py          # Deduplication + persistence
-├── notifier.py         # Email digest
-├── .env                # Credentials (not committed)
-├── .gitignore
-└── logs/               # Run logs (not committed)
+job posted → job discovered
+```
+
+The goal is simple: **surface relevant roles earlier and automatically**
+
+---
+
+# System Architecture
+
+```
+Company Registry
+        │
+        ▼
+ATS Data Sources
+(Greenhouse / Lever / Workday / Ashby)
+        │
+        ▼
+Job Ingestion Pipeline
+(fetch → filter → normalize)
+        │
+        ▼
+Deduplication Layer
+(seen_jobs registry)
+        │
+        ▼
+Storage
+(jobs.json + logs)
+        │
+        ▼
+Notification System
+(daily email digest)
 ```
 
 ---
 
-## Setup
+# Data Pipeline
 
-> This project is configured for my personal job search and runs locally on my machine. If you want to adapt it for your own use:
+## 1. Company Registry
 
-1. Clone the repo and create a virtual environment
+A curated list of companies and their corresponding ATS platforms.
+
+Each company entry includes:
+
+- company name  
+- ATS platform  
+- platform slug  
+- job keyword filters  
+
+Example structure:
+
+```
+company
+platform
+slug
+```
+
+---
+
+## 2. ATS Data Collection
+
+The scraper pulls postings directly from ATS platforms using a mix of:
+
+### Official APIs
+- Greenhouse
+- Ashby
+
+### Endpoint-based queries
+- Lever
+- Workday
+
+Each platform returns slightly different payload structures, which are normalized during processing.
+
+---
+
+## 3. Filtering
+
+Job postings are filtered using keyword matching to surface relevant roles such as:
+
+- Data Analyst  
+- Analytics  
+- Business Intelligence  
+- Data Science  
+- Internships  
+
+Additional filtering tiers prioritize:
+
+- internships  
+- food-industry companies  
+- general analytics roles  
+
+---
+
+## 4. Normalization
+
+Source-specific responses are transformed into a consistent job structure:
+
+```
+id
+company
+title
+location
+url
+source
+category
+date_found
+```
+
+This allows the system to treat all ATS sources as a unified dataset.
+
+---
+
+## 5. Deduplication
+
+A `seen_jobs.json` registry prevents previously surfaced jobs from appearing in future runs.
+
+Only **new job postings** discovered since the last run are reported.
+
+---
+
+## 6. Notifications
+
+When new relevant roles are discovered, the system sends a **plain-text email digest** via Gmail SMTP summarizing the matches.
+
+---
+
+# Example Output
+
+Example daily email digest:
+
+```
+New Job Matches (Last 24 Hours)
+
+Toast — Data Analyst — Remote
+Afresh — Data Analyst Intern — San Francisco
+Olo — Business Intelligence Analyst — Remote
+```
+
+---
+
+# Tech Stack
+
+## Core
+- Python 3.12
+- requests
+- python-dotenv
+
+## Notifications
+- smtplib (Gmail SMTP)
+
+## Automation
+- macOS launchd scheduled task
+
+## Storage
+- JSON persistence (`jobs.json`)
+- seen registry (`seen_jobs.json`)
+- run logs
+
+---
+
+# Project Structure
+
+```
+food-industry-job-scraper/
+
+├── companies.py      # Master company registry
+├── scraper.py        # Main ingestion pipeline
+├── storage.py        # Persistence + deduplication
+├── notifier.py       # Email digest notifications
+├── logs/             # Execution logs (not committed)
+├── jobs.json         # Stored job matches
+├── seen_jobs.json    # Deduplication registry
+├── .env              # Email credentials (not committed)
+└── .gitignore
+```
+
+---
+
+# Current Deployment
+
+The scraper currently runs as a **scheduled local Python job on macOS** using `launchd`.
+
+This allows the pipeline to execute automatically each morning and send a daily digest without manual execution.
+
+Future versions may migrate scheduling to **GitHub Actions or cloud automation** for improved portability and monitoring.
+
+---
+
+# Setup
+
+Clone the repository:
+
+```bash
+git clone https://github.com/stevencc92/food-industry-job-scraper.git
+cd food-industry-job-scraper
+```
+
+Create a virtual environment:
+
 ```bash
 python3.12 -m venv venv
 source venv/bin/activate
+```
+
+Install dependencies:
+
+```bash
 pip install requests python-dotenv
 ```
 
-2. Create a `.env` file with your Gmail credentials
+Create a `.env` file:
+
 ```
 SCRAPER_EMAIL=your_sender@gmail.com
-SCRAPER_PASSWORD=your_16_char_app_password
-NOTIFY_EMAIL=your_personal@gmail.com
+SCRAPER_PASSWORD=your_gmail_app_password
+NOTIFY_EMAIL=your_personal_email@gmail.com
 ```
 
-3. Run it
+Run the scraper manually:
+
 ```bash
-python3.12 scraper.py
+python scraper.py
 ```
 
 ---
 
-## Roadmap
+# Roadmap
 
-- [x] Greenhouse API integration
-- [x] Keyword filtering
-- [x] Deduplication across runs
-- [x] Email digest notifications
-- [x] macOS launchd scheduling
-- [ ] Lever API integration
-- [ ] Workday scraping
-- [ ] SQLite storage (replacing flat JSON files)
-- [ ] HTML email formatting
-- [ ] Web dashboard for browsing saved jobs
+## Data Infrastructure
+- Migrate storage from JSON → **SQLite**
+- Store historical job postings
+- Track job discovery timestamps
+- Support structured querying
+
+## Reliability & Observability
+- Track scraper run metrics
+- Record platform failures and request errors
+- Measure ATS source reliability
+
+## Automation
+- GitHub Actions scheduled runs
+- Cloud-based execution independent of local machine
+
+## Analytics
+- Job posting frequency by company
+- Hiring trends across ATS platforms
+- Most common analytics role keywords
+- Location distribution
+
+## UX Improvements
+- HTML formatted email reports
+- Web dashboard for browsing historical postings
 
 ---
 
-## Background
+# Background
 
-I'm a third-year Computer Science student at Southern New Hampshire University specializing in Data Analytics, currently working as a Chef de Partie at a regional medical center in San Jose. This project is part of a portfolio built around food service operations and data, an area I've been trying to develop a practical foothold in alongside my studies.
+Author: **Steven Cockrum**
 
-Other projects: [healthcare-food-waste-analysis](https://github.com/stevencc92/healthcare-food-waste-analysis) · [healthcare-waste-audit](https://github.com/stevencc92/healthcare-waste-audit)
+Computer Science student specializing in **Data Analytics** at Southern New Hampshire University.
+
+Currently transitioning from **13+ years in culinary operations** into data analytics, with portfolio projects focused on operational systems and data within the food industry.
+
+Related projects:
+
+- Healthcare Food Waste Analysis  
+- Healthcare Waste Audit  
+
+---
+
+# Future Vision
+
+As the dataset grows, this system can evolve from a job notification tool into a **job market intelligence dataset**, enabling analysis of hiring patterns across companies, locations, and applicant tracking systems.
