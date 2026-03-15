@@ -18,6 +18,7 @@ GREENHOUSE_COMPANIES = [
     {"name": "Sweetgreen",      "board_token": "sweetgreen",    "category": "food"},
     {"name": "DoorDash",        "board_token": "doordashusa",   "category": "food"},
     {"name": "Too Good To Go",  "board_token": "toogoodtogo",   "category": "food"},
+    {"name": "Zerocater",       "board_token": "zerocater",     "category": "food"},
 
     # --- CPG / Food Manufacturing ---
     {"name": "Daily Harvest",   "board_token": "dailyharvest",  "category": "food"},
@@ -26,6 +27,21 @@ GREENHOUSE_COMPANIES = [
 
     # --- Grocery Tech ---
     {"name": "Instacart",       "board_token": "instacart",     "category": "food"},
+
+    # --- Bay Area Mid-Size Tech ---
+    {"name": "Samsara",         "board_token": "samsara",       "category": "analytics"},
+    {"name": "Webflow",         "board_token": "webflow",       "category": "analytics"},
+    {"name": "Taskrabbit",      "board_token": "taskrabbit",    "category": "analytics"},
+    {"name": "Moloco",          "board_token": "moloco",        "category": "analytics"},
+    {"name": "HoneyBook",       "board_token": "honeybook",     "category": "analytics"},
+    {"name": "Domino Data Lab", "board_token": "dominodatalab", "category": "analytics"},
+    {"name": "Doximity",        "board_token": "doximity",      "category": "analytics"},
+    {"name": "Babylist",        "board_token": "babylist",      "category": "analytics"},
+    {"name": "Moveworks",       "board_token": "moveworks",     "category": "analytics"},
+    {"name": "Calm",            "board_token": "calm",          "category": "analytics"},
+    {"name": "Liftoff",         "board_token": "liftoff",       "category": "analytics"},
+    {"name": "NextRoll",        "board_token": "nextroll",      "category": "analytics"},
+    {"name": "Marqeta",         "board_token": "marqeta",       "category": "analytics"},
 
     # --- Analytics / BI (broader targets) ---
     {"name": "Amplitude",       "board_token": "amplitude",      "category": "analytics"},
@@ -48,6 +64,10 @@ LEVER_COMPANIES = [
     {"name": "Restaurant365",    "company_id": "restaurant365",  "category": "food"},
     {"name": "Chef Robotics",    "company_id": "ChefRobotics",   "category": "food"},
     {"name": "Foodsmart",        "company_id": "foodsmart",      "category": "food"},
+    {"name": "Thistle",          "company_id": "thistle.co",     "category": "food"},
+    {"name": "Brightseed",       "company_id": "brightseedbio",  "category": "food"},
+    {"name": "Bowery Farming",   "company_id": "boweryfarming",  "category": "food"},
+    {"name": "Mom's Meals",      "company_id": "momsmeals",      "category": "food"},
 
     # --- Grocery / Delivery ---
     {"name": "Gopuff",           "company_id": "gopuff",         "category": "food"},
@@ -82,12 +102,6 @@ WORKDAY_COMPANIES = [
         "url": "https://conagrabrands.wd1.myworkdayjobs.com/wday/cxs/conagrabrands/Careers_US/jobs",
         "category": "food",
     },
-    {
-        "name": "McCormick",
-        "url": "https://mccormick.wd5.myworkdayjobs.com/wday/cxs/mccormick/McCormick/jobs",
-        "category": "food",
-    },
-
     # --- Analytics / BI ---
     {
         "name": "Leidos",
@@ -124,6 +138,11 @@ ASHBY_COMPANIES = [
     {"name": "Lightdash",       "company_id": "lightdash",      "category": "analytics"},
     {"name": "Cube Dev",        "company_id": "cube",           "category": "analytics"},
     {"name": "Airbyte",         "company_id": "airbyte",        "category": "analytics"},
+
+    # --- Bay Area Mid-Size Tech (confirmed on Ashby) ---
+    {"name": "Notion",          "company_id": "notion",         "category": "analytics"},
+    {"name": "BetterUp",        "company_id": "betterup",       "category": "analytics"},
+    {"name": "TRM Labs",        "company_id": "trm-labs",       "category": "analytics"},
 ]
 
 

@@ -1,6 +1,7 @@
 """
 notifier.py — Sends an email digest of new job matches.
 Uses Gmail SMTP with credentials stored in .env — never hardcoded.
+Email is organized into priority tiers so high-value matches are always at the top.
 """
 
 import smtplib
@@ -10,14 +11,12 @@ from datetime import datetime
 from dotenv import load_dotenv
 import os
 
-# Load the credentials from .env
 load_dotenv()
 
 SCRAPER_EMAIL = os.getenv("SCRAPER_EMAIL")
 SCRAPER_PASSWORD = os.getenv("SCRAPER_PASSWORD")
 NOTIFY_EMAIL = os.getenv("NOTIFY_EMAIL")
 
-# Location keywords for tagging
 LOCAL_KEYWORDS = [
     "san jose", "santa clara", "sunnyvale", "mountain view",
     "palo alto", "san francisco", "sf", "bay area", "campbell",
@@ -27,53 +26,85 @@ LOCAL_KEYWORDS = [
 
 REMOTE_KEYWORDS = ["remote", "anywhere", "distributed", "work from home", "wfh"]
 
+INTERNSHIP_KEYWORDS = [
+    "intern", "internship", "co-op", "coop", "student"
+]
+
 
 def tag_location(location_str):
-    """
-    Returns a location tag based on the job's location string.
-    Local  = Bay Area / San Jose area
-    Remote = explicitly remote
-    Other  = everything else
-    """
     if not location_str:
         return "Other"
-
     loc = location_str.lower()
-
-    if any(keyword in loc for keyword in REMOTE_KEYWORDS):
+    if any(k in loc for k in REMOTE_KEYWORDS):
         return "Remote"
-    if any(keyword in loc for keyword in LOCAL_KEYWORDS):
+    if any(k in loc for k in LOCAL_KEYWORDS):
         return "Local"
     return "Other"
 
 
+def is_internship(title):
+    title_lower = title.lower()
+    return any(k in title_lower for k in INTERNSHIP_KEYWORDS)
+
+
+def tier_job(job):
+    """
+    Returns a tier number 1-4 based on location and internship status.
+    Lower = higher priority.
+    """
+    loc = tag_location(job.get("location", ""))
+    intern = is_internship(job.get("title", ""))
+
+    if intern and loc in ("Local", "Remote"):
+        return 1  # Local or Remote Internship — apply now
+    if intern:
+        return 2  # Internship but other location — worth a look
+    if loc in ("Local", "Remote"):
+        return 3  # Local or Remote full-time
+    return 4      # Everything else
+
+
+TIER_LABELS = {
+    1: "TIER 1 — Internships (Local & Remote)",
+    2: "TIER 2 — Internships (Other Locations)",
+    3: "TIER 3 — Full-Time (Local & Remote)",
+    4: "TIER 4 — Full-Time (Other Locations)",
+}
+
+
 def build_email_body(new_jobs):
-    """
-    Builds a plain-text email with two sections:
-    - Food & Hospitality (primary targets)
-    - Analytics & BI (broader roles)
-    Each job is tagged as Local, Remote, or Other.
-    """
     date_str = datetime.now().strftime("%B %d, %Y")
     lines = []
 
     lines.append(f"Job Scraper Digest — {date_str}")
-    lines.append(f"{len(new_jobs)} new job(s) found\n")
+    lines.append(f"{len(new_jobs)} new job(s) found")
+    lines.append("")
 
-    # Split into categories
-    food_jobs = [j for j in new_jobs if j.get("category") == "food"]
-    analytics_jobs = [j for j in new_jobs if j.get("category") == "analytics"]
-    other_jobs = [j for j in new_jobs if j.get("category") not in ("food", "analytics")]
+    # Sort jobs into tiers
+    tiers = {1: [], 2: [], 3: [], 4: []}
+    for job in new_jobs:
+        tiers[tier_job(job)].append(job)
 
-    def format_section(title, jobs):
+    # Print tier summary
+    lines.append("SUMMARY")
+    lines.append("-" * 30)
+    for tier_num, label in TIER_LABELS.items():
+        count = len(tiers[tier_num])
+        if count:
+            lines.append(f"  {label}: {count} job(s)")
+    lines.append("")
+
+    # Print each tier
+    for tier_num, label in TIER_LABELS.items():
+        jobs = tiers[tier_num]
         if not jobs:
-            return []
-        section = []
-        section.append("=" * 40)
-        section.append(title)
-        section.append("=" * 40)
+            continue
 
-        # Group by company
+        lines.append("=" * 40)
+        lines.append(label)
+        lines.append("=" * 40)
+
+        # Group by company within tier
         by_company = {}
         for job in jobs:
             company = job["company"]
@@ -82,19 +113,14 @@ def build_email_body(new_jobs):
             by_company[company].append(job)
 
         for company, company_jobs in by_company.items():
-            section.append(f"\n{company}")
-            section.append("-" * len(company))
+            lines.append(f"\n{company}")
+            lines.append("-" * len(company))
             for job in company_jobs:
                 loc_tag = tag_location(job.get("location", ""))
-                section.append(f"  [{loc_tag}] {job['title']}")
-                section.append(f"  {job.get('location', 'Not listed')}")
-                section.append(f"  {job['url']}")
-                section.append("")
-        return section
-
-    lines += format_section("FOOD & HOSPITALITY", food_jobs)
-    lines += format_section("ANALYTICS & BI", analytics_jobs)
-    lines += format_section("OTHER", other_jobs)
+                lines.append(f"  [{loc_tag}] {job['title']}")
+                lines.append(f"  {job.get('location', 'Not listed')}")
+                lines.append(f"  {job['url']}")
+                lines.append("")
 
     lines.append("=" * 40)
     lines.append("Sent by your job scraper.")
@@ -103,10 +129,6 @@ def build_email_body(new_jobs):
 
 
 def send_notification(new_jobs):
-    """
-    Sends the digest email if there are new jobs to report.
-    Skips sending if the list is empty.
-    """
     if not new_jobs:
         print("[notifier] No new jobs — skipping email.")
         return
@@ -115,7 +137,11 @@ def send_notification(new_jobs):
         print("[notifier] Missing credentials in .env — skipping email.")
         return
 
-    subject = f"Job Scraper — {len(new_jobs)} new job(s) found"
+    # Count tier 1 for subject line
+    tier1_count = sum(1 for j in new_jobs if tier_job(j) == 1)
+    tier1_str = f" ★ {tier1_count} internship(s) to review" if tier1_count else ""
+
+    subject = f"Job Scraper — {len(new_jobs)} new job(s){tier1_str}"
     body = build_email_body(new_jobs)
 
     msg = MIMEMultipart()
