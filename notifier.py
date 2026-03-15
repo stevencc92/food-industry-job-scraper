@@ -17,12 +17,42 @@ SCRAPER_EMAIL = os.getenv("SCRAPER_EMAIL")
 SCRAPER_PASSWORD = os.getenv("SCRAPER_PASSWORD")
 NOTIFY_EMAIL = os.getenv("NOTIFY_EMAIL")
 
+# Location keywords for tagging
+LOCAL_KEYWORDS = [
+    "san jose", "santa clara", "sunnyvale", "mountain view",
+    "palo alto", "san francisco", "sf", "bay area", "campbell",
+    "cupertino", "milpitas", "fremont", "oakland", "berkeley",
+    "redwood city", "menlo park", "foster city", "south bay"
+]
+
+REMOTE_KEYWORDS = ["remote", "anywhere", "distributed", "work from home", "wfh"]
+
+
+def tag_location(location_str):
+    """
+    Returns a location tag based on the job's location string.
+    Local  = Bay Area / San Jose area
+    Remote = explicitly remote
+    Other  = everything else
+    """
+    if not location_str:
+        return "Other"
+
+    loc = location_str.lower()
+
+    if any(keyword in loc for keyword in REMOTE_KEYWORDS):
+        return "Remote"
+    if any(keyword in loc for keyword in LOCAL_KEYWORDS):
+        return "Local"
+    return "Other"
+
 
 def build_email_body(new_jobs):
     """
     Builds a plain-text email with two sections:
     - Food & Hospitality (primary targets)
     - Analytics & BI (broader roles)
+    Each job is tagged as Local, Remote, or Other.
     """
     date_str = datetime.now().strftime("%B %d, %Y")
     lines = []
@@ -55,8 +85,9 @@ def build_email_body(new_jobs):
             section.append(f"\n{company}")
             section.append("-" * len(company))
             for job in company_jobs:
-                section.append(f"  {job['title']}")
-                section.append(f"  Location: {job['location']}")
+                loc_tag = tag_location(job.get("location", ""))
+                section.append(f"  [{loc_tag}] {job['title']}")
+                section.append(f"  {job.get('location', 'Not listed')}")
                 section.append(f"  {job['url']}")
                 section.append("")
         return section
@@ -80,7 +111,6 @@ def send_notification(new_jobs):
         print("[notifier] No new jobs — skipping email.")
         return
 
-    # Check credentials are loaded
     if not all([SCRAPER_EMAIL, SCRAPER_PASSWORD, NOTIFY_EMAIL]):
         print("[notifier] Missing credentials in .env — skipping email.")
         return
@@ -88,14 +118,12 @@ def send_notification(new_jobs):
     subject = f"Job Scraper — {len(new_jobs)} new job(s) found"
     body = build_email_body(new_jobs)
 
-    # Build the email
     msg = MIMEMultipart()
     msg["From"] = SCRAPER_EMAIL
     msg["To"] = NOTIFY_EMAIL
     msg["Subject"] = subject
     msg.attach(MIMEText(body, "plain"))
 
-    # Send it via Gmail's SMTP server
     try:
         print("[notifier] Connecting to Gmail...")
         with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
