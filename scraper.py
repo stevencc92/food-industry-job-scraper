@@ -182,6 +182,7 @@ def process_workday(company, seen_jobs, all_new_matches):
     name = company["name"]
     url = company["url"]
     category = company.get("category", "general")
+    board_name = company.get("board_name")  # optional — only needed for some tenants
 
     print(f"\nChecking {name} (Workday)...")
 
@@ -212,10 +213,16 @@ def process_workday(company, seen_jobs, all_new_matches):
         for job in new_jobs:
             title = job.get("title", "No title")
             path = job.get("externalPath", "")
-            # Build the full URL from the base domain + the job path
-            base = url.split("/wday/")[0]
-            job_url = f"{base}{path}" if path else base
             location = job.get("locationsText", "Not listed")
+
+            base_domain = url.split("/wday/")[0]
+            if path:
+                if board_name:
+                    job_url = f"{base_domain}/en-US/{board_name}{path}"
+                else:
+                    job_url = f"{base_domain}{path}"
+            else:
+                job_url = base_domain
 
             print(f"    - {title}")
             print(f"      {job_url}")

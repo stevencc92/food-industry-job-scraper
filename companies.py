@@ -64,9 +64,7 @@ LEVER_COMPANIES = [
     {"name": "Restaurant365",    "company_id": "restaurant365",  "category": "food"},
     {"name": "Chef Robotics",    "company_id": "ChefRobotics",   "category": "food"},
     {"name": "Foodsmart",        "company_id": "foodsmart",      "category": "food"},
-    {"name": "Thistle",          "company_id": "thistle.co",     "category": "food"},
     {"name": "Brightseed",       "company_id": "brightseedbio",  "category": "food"},
-    {"name": "Bowery Farming",   "company_id": "boweryfarming",  "category": "food"},
     {"name": "Mom's Meals",      "company_id": "momsmeals",      "category": "food"},
 
     # --- Grocery / Delivery ---
@@ -117,6 +115,7 @@ WORKDAY_COMPANIES = [
         "name": "BeOne Medicines",
         "url": "https://beigene.wd5.myworkdayjobs.com/wday/cxs/beigene/BeiGene/jobs",
         "category": "analytics",
+        "board_name": "BeiGene",  # needed for correct public URL
     },
     {
         "name": "Rosendin",
