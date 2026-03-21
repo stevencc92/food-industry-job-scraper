@@ -6,7 +6,7 @@ Checks both platforms, deduplicates, saves, and emails new matches.
 import requests
 from datetime import datetime
 from companies import GREENHOUSE_COMPANIES, LEVER_COMPANIES, WORKDAY_COMPANIES, ASHBY_COMPANIES, SEARCH_KEYWORDS
-from storage import load_seen_jobs, save_seen_jobs, filter_new_jobs, save_jobs
+from storage import load_seen_jobs, filter_new_jobs, save_jobs, save_run_metrics
 from notifier import send_notification
 
 
@@ -104,7 +104,7 @@ def process_greenhouse(company, seen_jobs, all_new_matches):
     else:
         print(f"  — No matches")
 
-    return seen_jobs
+    return seen_jobs, {"found": len(new_jobs), "errors": 0 if jobs else 1}
 
 
 def process_lever(company, seen_jobs, all_new_matches):
@@ -137,7 +137,7 @@ def process_lever(company, seen_jobs, all_new_matches):
     else:
         print(f"  — No matches")
 
-    return seen_jobs
+    return seen_jobs, {"found": len(new_jobs), "errors": 0 if jobs else 1}
 
 
 # ─────────────────────────────────────────────
@@ -189,9 +189,12 @@ def process_workday(company, seen_jobs, all_new_matches):
     # Search once per keyword and collect all unique results
     seen_in_this_run = set()
     all_jobs = []
+    errors = 0
 
     for keyword in SEARCH_KEYWORDS:
         jobs = fetch_workday_jobs(url, keyword)
+        if not jobs and keyword == SEARCH_KEYWORDS[0]:
+            errors = 1  # count as one error per company if first keyword fails
         for job in jobs:
             job_id = job.get("bulletFields", [""])[0] + job.get("title", "")
             if job_id not in seen_in_this_run:
@@ -242,7 +245,7 @@ def process_workday(company, seen_jobs, all_new_matches):
     else:
         print(f"  — No matches")
 
-    return seen_jobs
+    return seen_jobs, {"found": len(new_jobs), "errors": errors}
 
 
 # ─────────────────────────────────────────────
@@ -311,7 +314,7 @@ def process_ashby(company, seen_jobs, all_new_matches):
     else:
         print(f"  — No matches")
 
-    return seen_jobs
+    return seen_jobs, {"found": len(new_jobs), "errors": 0 if jobs else 1}
 
 
 def run_scraper():
@@ -326,30 +329,60 @@ def run_scraper():
 
     # --- Greenhouse ---
     print("\n--- Greenhouse ---")
+    greenhouse_found, greenhouse_errors = 0, 0
     for company in GREENHOUSE_COMPANIES:
-        seen_jobs = process_greenhouse(company, seen_jobs, all_new_matches)
+        seen_jobs, result = process_greenhouse(company, seen_jobs, all_new_matches)
+        greenhouse_found += result["found"]
+        greenhouse_errors += result["errors"]
 
     # --- Lever ---
     print("\n--- Lever ---")
+    lever_found, lever_errors = 0, 0
     for company in LEVER_COMPANIES:
-        seen_jobs = process_lever(company, seen_jobs, all_new_matches)
+        seen_jobs, result = process_lever(company, seen_jobs, all_new_matches)
+        lever_found += result["found"]
+        lever_errors += result["errors"]
 
     # --- Workday ---
     print("\n--- Workday ---")
+    workday_found, workday_errors = 0, 0
     for company in WORKDAY_COMPANIES:
-        seen_jobs = process_workday(company, seen_jobs, all_new_matches)
+        seen_jobs, result = process_workday(company, seen_jobs, all_new_matches)
+        workday_found += result["found"]
+        workday_errors += result["errors"]
 
     # --- Ashby ---
     print("\n--- Ashby ---")
+    ashby_found, ashby_errors = 0, 0
     for company in ASHBY_COMPANIES:
-        seen_jobs = process_ashby(company, seen_jobs, all_new_matches)
+        seen_jobs, result = process_ashby(company, seen_jobs, all_new_matches)
+        ashby_found += result["found"]
+        ashby_errors += result["errors"]
 
     # --- Save + notify ---
     if all_new_matches:
         save_jobs(all_new_matches)
 
-    save_seen_jobs(seen_jobs)
     send_notification(all_new_matches)
+
+    # --- Save run metrics ---
+    companies_checked = (
+        len(GREENHOUSE_COMPANIES) + len(LEVER_COMPANIES) +
+        len(WORKDAY_COMPANIES) + len(ASHBY_COMPANIES)
+    )
+    companies_with_hits = len(set(job["company"] for job in all_new_matches))
+
+    save_run_metrics({
+        "run_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "jobs_found": len(all_new_matches),
+        "greenhouse_found": greenhouse_found,
+        "lever_found": lever_found,
+        "workday_found": workday_found,
+        "ashby_found": ashby_found,
+        "companies_checked": companies_checked,
+        "companies_with_hits": companies_with_hits,
+        "errors": greenhouse_errors + lever_errors + workday_errors + ashby_errors,
+    })
 
     print("\n" + "=" * 50)
     print(f"Done. {len(all_new_matches)} new job(s) found this run.")
