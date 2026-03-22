@@ -1,11 +1,14 @@
 """
-scraper.py — Phase 5: Greenhouse + Lever scraper
-Checks both platforms, deduplicates, saves, and emails new matches.
+scraper.py — Phase 6: Greenhouse + Lever + Workday + Ashby + SmartRecruiters
+Checks all five platforms, deduplicates, saves, and emails new matches.
 """
 
 import requests
 from datetime import datetime
-from companies import GREENHOUSE_COMPANIES, LEVER_COMPANIES, WORKDAY_COMPANIES, ASHBY_COMPANIES, SEARCH_KEYWORDS
+from companies import (
+    GREENHOUSE_COMPANIES, LEVER_COMPANIES, WORKDAY_COMPANIES,
+    ASHBY_COMPANIES, SMARTRECRUITERS_COMPANIES, SEARCH_KEYWORDS
+)
 from storage import load_seen_jobs, filter_new_jobs, save_jobs, save_run_metrics
 from notifier import send_notification
 
@@ -155,7 +158,6 @@ def fetch_workday_jobs(url, keyword):
         "User-Agent": "Mozilla/5.0",
     }
 
-    # This is the payload Workday expects — search term plus pagination
     payload = {
         "appliedFacets": {},
         "limit": 20,
@@ -182,11 +184,10 @@ def process_workday(company, seen_jobs, all_new_matches):
     name = company["name"]
     url = company["url"]
     category = company.get("category", "general")
-    board_name = company.get("board_name")  # optional — only needed for some tenants
+    board_name = company.get("board_name")
 
     print(f"\nChecking {name} (Workday)...")
 
-    # Search once per keyword and collect all unique results
     seen_in_this_run = set()
     all_jobs = []
     errors = 0
@@ -194,18 +195,15 @@ def process_workday(company, seen_jobs, all_new_matches):
     for keyword in SEARCH_KEYWORDS:
         jobs = fetch_workday_jobs(url, keyword)
         if not jobs and keyword == SEARCH_KEYWORDS[0]:
-            errors = 1  # count as one error per company if first keyword fails
+            errors = 1
         for job in jobs:
             job_id = job.get("bulletFields", [""])[0] + job.get("title", "")
             if job_id not in seen_in_this_run:
                 seen_in_this_run.add(job_id)
                 all_jobs.append(job)
 
-    # Filter by keyword match on title
     relevant = [job for job in all_jobs if is_relevant(job.get("title", ""))]
 
-    # Workday uses externalPath as a unique ID
-    # We build a synthetic ID from the title + path since there's no clean numeric ID
     for job in relevant:
         job["id"] = job.get("externalPath", job.get("title", "")).strip("/").replace("/", "-")
 
@@ -256,7 +254,6 @@ def fetch_ashby_jobs(company_id):
     """
     Calls Ashby's official public job board API.
     Returns a list of public job postings.
-    Docs: https://developers.ashbyhq.com/docs/public-job-posting-api
     """
     url = f"https://api.ashbyhq.com/posting-api/job-board/{company_id}"
 
@@ -317,6 +314,102 @@ def process_ashby(company, seen_jobs, all_new_matches):
     return seen_jobs, {"found": len(new_jobs), "errors": 0 if jobs else 1}
 
 
+# ─────────────────────────────────────────────
+# SMARTRECRUITERS
+# ─────────────────────────────────────────────
+
+def fetch_smartrecruiters_jobs(company_id, keyword):
+    """
+    Calls the SmartRecruiters public jobs API for a given company and keyword.
+    Uses the q= query parameter to search server-side — no auth required.
+    Returns a list of job postings.
+    API docs: https://dev.smartrecruiters.com/customer-api/live-docs/job-posting-api/
+    """
+    url = f"https://api.smartrecruiters.com/v1/companies/{company_id}/postings"
+
+    params = {
+        "q": keyword,
+        "limit": 100,  # max allowed per request
+    }
+
+    try:
+        response = requests.get(url, params=params, timeout=10)
+
+        if response.status_code == 404:
+            print(f"  [skipped] {company_id} — not found")
+            return []
+
+        if response.status_code != 200:
+            print(f"  [skipped] {company_id} — status {response.status_code}")
+            return []
+
+        data = response.json()
+        return data.get("content", [])
+
+    except requests.exceptions.RequestException as e:
+        print(f"  [error] {company_id} — {e}")
+        return []
+
+
+def process_smartrecruiters(company, seen_jobs, all_new_matches):
+    name = company["name"]
+    company_id = company["company_id"]
+    category = company.get("category", "general")
+
+    print(f"\nChecking {name} (SmartRecruiters)...")
+
+    # Search per keyword, deduplicate by job ID within this run
+    seen_in_this_run = set()
+    all_jobs = []
+    errors = 0
+
+    for keyword in SEARCH_KEYWORDS:
+        jobs = fetch_smartrecruiters_jobs(company_id, keyword)
+        if not jobs and keyword == SEARCH_KEYWORDS[0]:
+            errors = 1
+        for job in jobs:
+            job_id = job.get("id", "")
+            if job_id and job_id not in seen_in_this_run:
+                seen_in_this_run.add(job_id)
+                all_jobs.append(job)
+
+    # SmartRecruiters server-side search is broad, so still filter client-side
+    relevant = [job for job in all_jobs if is_relevant(job.get("name", ""))]
+    new_jobs, seen_jobs = filter_new_jobs(relevant, seen_jobs)
+
+    if new_jobs:
+        print(f"  ✓ {len(new_jobs)} NEW match(es):")
+        for job in new_jobs:
+            title = job.get("name", "No title")
+            location_obj = job.get("location", {})
+            location = location_obj.get("city") or location_obj.get("country") or "Not listed"
+            job_url = f"https://jobs.smartrecruiters.com/{company_id}/{job.get('id', '')}"
+
+            print(f"    - {title}")
+            print(f"      {job_url}")
+
+            all_new_matches.append({
+                "id": job["id"],
+                "company": name,
+                "title": title,
+                "url": job_url,
+                "location": location,
+                "source": "SmartRecruiters",
+                "category": category,
+                "date_found": datetime.now().strftime("%Y-%m-%d"),
+            })
+    elif relevant:
+        print(f"  — {len(relevant)} match(es) found but already seen")
+    else:
+        print(f"  — No matches")
+
+    return seen_jobs, {"found": len(new_jobs), "errors": errors}
+
+
+# ─────────────────────────────────────────────
+# MAIN
+# ─────────────────────────────────────────────
+
 def run_scraper():
     print("=" * 50)
     print(f"Job Scraper — {datetime.now().strftime('%Y-%m-%d %H:%M')}")
@@ -359,6 +452,14 @@ def run_scraper():
         ashby_found += result["found"]
         ashby_errors += result["errors"]
 
+    # --- SmartRecruiters ---
+    print("\n--- SmartRecruiters ---")
+    smartrecruiters_found, smartrecruiters_errors = 0, 0
+    for company in SMARTRECRUITERS_COMPANIES:
+        seen_jobs, result = process_smartrecruiters(company, seen_jobs, all_new_matches)
+        smartrecruiters_found += result["found"]
+        smartrecruiters_errors += result["errors"]
+
     # --- Save + notify ---
     if all_new_matches:
         save_jobs(all_new_matches)
@@ -368,7 +469,8 @@ def run_scraper():
     # --- Save run metrics ---
     companies_checked = (
         len(GREENHOUSE_COMPANIES) + len(LEVER_COMPANIES) +
-        len(WORKDAY_COMPANIES) + len(ASHBY_COMPANIES)
+        len(WORKDAY_COMPANIES) + len(ASHBY_COMPANIES) +
+        len(SMARTRECRUITERS_COMPANIES)
     )
     companies_with_hits = len(set(job["company"] for job in all_new_matches))
 
@@ -379,9 +481,13 @@ def run_scraper():
         "lever_found": lever_found,
         "workday_found": workday_found,
         "ashby_found": ashby_found,
+        "smartrecruiters_found": smartrecruiters_found,
         "companies_checked": companies_checked,
         "companies_with_hits": companies_with_hits,
-        "errors": greenhouse_errors + lever_errors + workday_errors + ashby_errors,
+        "errors": (
+            greenhouse_errors + lever_errors + workday_errors +
+            ashby_errors + smartrecruiters_errors
+        ),
     })
 
     print("\n" + "=" * 50)

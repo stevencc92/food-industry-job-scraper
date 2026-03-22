@@ -3,8 +3,9 @@ storage.py — Handles saving jobs and tracking which ones we've already seen.
 Backed by SQLite instead of flat JSON files.
 
 Database lives at: data/jobs.db
-One table: jobs — stores all matched jobs, deduplicates by primary key.
-Seen job IDs are derived from the jobs table directly (no separate seen file).
+Tables:
+  - jobs: all matched jobs, deduplicated by primary key
+  - runs: one row per scraper run with platform-level metrics
 """
 
 import sqlite3
@@ -21,13 +22,62 @@ DB_PATH = os.path.join("data", "jobs.db")
 def get_connection():
     """
     Opens a connection to the SQLite database.
-    Creates the data/ directory and jobs table if they don't exist yet.
+    Creates the data/ directory and all tables if they don't exist yet.
     """
     os.makedirs("data", exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row  # lets us access columns by name, not just index
+    conn.row_factory = sqlite3.Row
     _create_tables(conn)
     return conn
+
+
+def _create_tables(conn):
+    """
+    Creates all tables if they don't already exist.
+    Also handles migrations for new columns added after initial deployment —
+    existing data is never lost.
+    """
+    # jobs table — one row per unique job match
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS jobs (
+            id          TEXT PRIMARY KEY,
+            company     TEXT,
+            title       TEXT,
+            url         TEXT,
+            location    TEXT,
+            source      TEXT,
+            category    TEXT,
+            date_found  TEXT
+        )
+    """)
+
+    # runs table — one row per scraper run
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS runs (
+            id                      INTEGER PRIMARY KEY AUTOINCREMENT,
+            run_at                  TEXT,
+            jobs_found              INTEGER,
+            greenhouse_found        INTEGER,
+            lever_found             INTEGER,
+            workday_found           INTEGER,
+            ashby_found             INTEGER,
+            smartrecruiters_found   INTEGER,
+            companies_checked       INTEGER,
+            companies_with_hits     INTEGER,
+            errors                  INTEGER
+        )
+    """)
+
+    # Migration: add smartrecruiters_found to runs if it doesn't exist yet.
+    # This handles databases created before SmartRecruiters was added —
+    # existing run rows will show NULL for this column, which is fine.
+    existing_columns = [
+        row[1] for row in conn.execute("PRAGMA table_info(runs)").fetchall()
+    ]
+    if "smartrecruiters_found" not in existing_columns:
+        conn.execute("ALTER TABLE runs ADD COLUMN smartrecruiters_found INTEGER")
+
+    conn.commit()
 
 
 # ─────────────────────────────────────────────
@@ -37,7 +87,7 @@ def get_connection():
 def load_seen_jobs():
     """
     Returns a set of all job IDs we've already stored.
-    Replaces seen_jobs.json — the jobs table is now the single source of truth.
+    The jobs table is the single source of truth — no separate seen file needed.
     """
     conn = get_connection()
     try:
@@ -102,43 +152,10 @@ def load_jobs():
     finally:
         conn.close()
 
+
 # ─────────────────────────────────────────────
 # RUN METRICS — one row per scraper run
 # ─────────────────────────────────────────────
-
-def _create_tables(conn):
-    """
-    Creates all tables if they don't already exist.
-    Safe to call on every run — won't overwrite existing data.
-    """
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS jobs (
-            id          TEXT PRIMARY KEY,
-            company     TEXT,
-            title       TEXT,
-            url         TEXT,
-            location    TEXT,
-            source      TEXT,
-            category    TEXT,
-            date_found  TEXT
-        )
-    """)
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS runs (
-            id                   INTEGER PRIMARY KEY AUTOINCREMENT,
-            run_at               TEXT,
-            jobs_found           INTEGER,
-            greenhouse_found     INTEGER,
-            lever_found          INTEGER,
-            workday_found        INTEGER,
-            ashby_found          INTEGER,
-            companies_checked    INTEGER,
-            companies_with_hits  INTEGER,
-            errors               INTEGER
-        )
-    """)
-    conn.commit()
-
 
 def save_run_metrics(metrics):
     """
@@ -150,12 +167,12 @@ def save_run_metrics(metrics):
         conn.execute("""
             INSERT INTO runs
                 (run_at, jobs_found, greenhouse_found, lever_found,
-                 workday_found, ashby_found, companies_checked,
-                 companies_with_hits, errors)
+                 workday_found, ashby_found, smartrecruiters_found,
+                 companies_checked, companies_with_hits, errors)
             VALUES
                 (:run_at, :jobs_found, :greenhouse_found, :lever_found,
-                 :workday_found, :ashby_found, :companies_checked,
-                 :companies_with_hits, :errors)
+                 :workday_found, :ashby_found, :smartrecruiters_found,
+                 :companies_checked, :companies_with_hits, :errors)
         """, metrics)
         conn.commit()
         print(f"  [storage] Run metrics saved.")

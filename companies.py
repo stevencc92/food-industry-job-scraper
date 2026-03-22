@@ -1,13 +1,13 @@
 """
 companies.py — Master company list for job scraper
-Organized by ATS platform: Greenhouse → Lever → Workday
-Targeting: Food Tech, Restaurant Tech, Contract Food Service, CPG/Food Manufacturing
+Organized by ATS platform: Greenhouse → Lever → Workday → Ashby → SmartRecruiters
+Targeting: Food Tech, Restaurant Tech, Contract Food Service, CPG/Food Manufacturing,
+           Bay Area Mid-Size Tech, Analytics/BI
 """
 
 # ─────────────────────────────────────────────
 # GREENHOUSE COMPANIES
 # API endpoint: https://boards-api.greenhouse.io/v1/boards/{board_token}/jobs
-# Board token is typically the slug shown below
 # ─────────────────────────────────────────────
 
 GREENHOUSE_COMPANIES = [
@@ -27,6 +27,9 @@ GREENHOUSE_COMPANIES = [
 
     # --- Grocery Tech ---
     {"name": "Instacart",       "board_token": "instacart",     "category": "food"},
+
+    # --- Healthcare / Food Service ---
+    {"name": "CareDx",          "board_token": "caredxinc",     "category": "analytics"},
 
     # --- Bay Area Mid-Size Tech ---
     {"name": "Samsara",         "board_token": "samsara",       "category": "analytics"},
@@ -70,17 +73,19 @@ LEVER_COMPANIES = [
     # --- Grocery / Delivery ---
     {"name": "Gopuff",           "company_id": "gopuff",         "category": "food"},
 
-    # --- Analytics / BI (broader targets) ---
+    # --- Analytics / BI ---
     {"name": "Metabase",         "company_id": "metabase",       "category": "analytics"},
+
+    # --- Bay Area Mid-Size Tech ---
+    {"name": "Guidewire",        "company_id": "guidewire",      "category": "analytics"},
+    {"name": "OpenX",            "company_id": "openx",          "category": "analytics"},
 ]
 
 
 # ─────────────────────────────────────────────
 # WORKDAY COMPANIES
-# Workday doesn't have a public REST API — scraping requires
-# hitting their search endpoint with HTTP requests.
-# URL pattern: https://{subdomain}.wd{n}.myworkdayjobs.com/wday/cxs/{tenant}/jobs
-# These will need per-company verification; placeholders provided.
+# Workday requires POST requests to a hidden CXS endpoint.
+# URL pattern: https://{subdomain}.wd{n}.myworkdayjobs.com/wday/cxs/{tenant}/{board}/jobs
 # ─────────────────────────────────────────────
 
 WORKDAY_COMPANIES = [
@@ -100,7 +105,8 @@ WORKDAY_COMPANIES = [
         "url": "https://conagrabrands.wd1.myworkdayjobs.com/wday/cxs/conagrabrands/Careers_US/jobs",
         "category": "food",
     },
-    # --- Analytics / BI ---
+
+    # --- Analytics / BI / Tech ---
     {
         "name": "Leidos",
         "url": "https://leidos.wd5.myworkdayjobs.com/wday/cxs/leidos/External/jobs",
@@ -115,11 +121,41 @@ WORKDAY_COMPANIES = [
         "name": "BeOne Medicines",
         "url": "https://beigene.wd5.myworkdayjobs.com/wday/cxs/beigene/BeiGene/jobs",
         "category": "analytics",
-        "board_name": "BeiGene",  # needed for correct public URL
+        "board_name": "BeiGene",
     },
     {
         "name": "Rosendin",
         "url": "https://rosendin.wd1.myworkdayjobs.com/wday/cxs/rosendin/Careers/jobs",
+        "category": "analytics",
+    },
+    {
+        "name": "Applied Materials",
+        "url": "https://amat.wd1.myworkdayjobs.com/wday/cxs/amat/External/jobs",
+        "category": "analytics",
+    },
+    {
+        "name": "Commvault",
+        "url": "https://commvault.wd1.myworkdayjobs.com/wday/cxs/commvault/commvault/jobs",
+        "category": "analytics",
+    },
+    {
+        "name": "Ingram Micro",
+        "url": "https://ingrammicro.wd5.myworkdayjobs.com/wday/cxs/ingrammicro/IngramMicro/jobs",
+        "category": "analytics",
+    },
+    {
+        "name": "Logitech",
+        "url": "https://logitech.wd5.myworkdayjobs.com/wday/cxs/logitech/Logitech/jobs",
+        "category": "analytics",
+    },
+    {
+        "name": "Lumentum",
+        "url": "https://lumentum.wd5.myworkdayjobs.com/wday/cxs/lumentum/LITE/jobs",
+        "category": "analytics",
+    },
+    {
+        "name": "FedEx",
+        "url": "https://fedex.wd1.myworkdayjobs.com/wday/cxs/fedex/FDW_External_Career_Site/jobs",
         "category": "analytics",
     },
 ]
@@ -127,25 +163,41 @@ WORKDAY_COMPANIES = [
 
 # ─────────────────────────────────────────────
 # ASHBY COMPANIES
-# API endpoint: https://jobs.ashbyhq.com/api/non-user-graphql
-# company_id is the slug from jobs.ashbyhq.com/{slug}
+# API endpoint: https://api.ashbyhq.com/posting-api/job-board/{company_id}
 # ─────────────────────────────────────────────
 
 ASHBY_COMPANIES = [
-    # --- Analytics / BI --- (confirmed on Ashby)
+    # --- Analytics / BI ---
     {"name": "Monte Carlo",     "company_id": "montecarlodata", "category": "analytics"},
     {"name": "Lightdash",       "company_id": "lightdash",      "category": "analytics"},
     {"name": "Cube Dev",        "company_id": "cube",           "category": "analytics"},
     {"name": "Airbyte",         "company_id": "airbyte",        "category": "analytics"},
 
-    # --- Bay Area Mid-Size Tech (confirmed on Ashby) ---
+    # --- Bay Area Mid-Size Tech ---
     {"name": "Notion",          "company_id": "notion",         "category": "analytics"},
     {"name": "BetterUp",        "company_id": "betterup",       "category": "analytics"},
     {"name": "TRM Labs",        "company_id": "trm-labs",       "category": "analytics"},
 ]
 
 
+# ─────────────────────────────────────────────
+# SMARTRECRUITERS COMPANIES
+# API endpoint: https://api.smartrecruiters.com/v1/companies/{company_id}/postings
+# company_id is the identifier used in the SmartRecruiters career URL
+# e.g. careers.smartrecruiters.com/NetApp2 → company_id: "NetApp2"
+# ─────────────────────────────────────────────
 
+SMARTRECRUITERS_COMPANIES = [
+    # --- Tech / Analytics ---
+    {"name": "NetApp",          "company_id": "NetApp2",        "category": "analytics"},
+    {"name": "Solidigm",        "company_id": "Solidigm",       "category": "analytics"},
+    {"name": "Renesas",         "company_id": "RenesasElectronics", "category": "analytics"},
+    {"name": "Visa",            "company_id": "Visa",           "category": "analytics"},
+]
+
+
+# ─────────────────────────────────────────────
+# SEARCH KEYWORDS
 # Used to filter jobs across all platforms
 # ─────────────────────────────────────────────
 
@@ -191,11 +243,17 @@ SEARCH_KEYWORDS = [
 # QUICK STATS (for README / logging)
 # ─────────────────────────────────────────────
 
-ALL_COMPANIES = GREENHOUSE_COMPANIES + LEVER_COMPANIES + WORKDAY_COMPANIES + ASHBY_COMPANIES
+ALL_COMPANIES = (
+    GREENHOUSE_COMPANIES + LEVER_COMPANIES +
+    WORKDAY_COMPANIES + ASHBY_COMPANIES +
+    SMARTRECRUITERS_COMPANIES
+)
 
 if __name__ == "__main__":
     print(f"Total companies: {len(ALL_COMPANIES)}")
-    print(f"  Greenhouse: {len(GREENHOUSE_COMPANIES)}")
-    print(f"  Lever:      {len(LEVER_COMPANIES)}")
-    print(f"  Workday:    {len(WORKDAY_COMPANIES)}")
+    print(f"  Greenhouse:       {len(GREENHOUSE_COMPANIES)}")
+    print(f"  Lever:            {len(LEVER_COMPANIES)}")
+    print(f"  Workday:          {len(WORKDAY_COMPANIES)}")
+    print(f"  Ashby:            {len(ASHBY_COMPANIES)}")
+    print(f"  SmartRecruiters:  {len(SMARTRECRUITERS_COMPANIES)}")
     print(f"Search keywords: {len(SEARCH_KEYWORDS)}")
