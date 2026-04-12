@@ -4,7 +4,7 @@ A Python-based job discovery and application preparation pipeline that monitors 
 
 The system pulls job postings directly from company hiring platforms, filters for relevant roles, stores them in a SQLite database, and sends a daily email digest of newly discovered opportunities.
 
-An **AI-powered agent layer** then evaluates each job for fit, generates a tailored cover letter draft, and produces resume bullet suggestions — all written to local files for your review.
+An **AI-powered agent layer** then evaluates each job for fit, generates a tailored cover letter draft, and produces resume bullet suggestions, all written to local files for your review.
 
 Originally built to support a targeted job search in **food tech, restaurant technology, contract food service, and CPG food companies**, but the architecture is designed to work with any company using supported ATS platforms.
 
@@ -76,7 +76,7 @@ Pulls postings directly from each ATS using a mix of official APIs and documente
 | Workday | POST endpoint |
 | SmartRecruiters | Official API |
 
-Each platform returns different payload structures, which are normalized during processing. Job descriptions are fetched and stored at discovery time — available inline for Lever and Ashby, and via a second request for Greenhouse, Workday, and SmartRecruiters.
+Each platform returns different payload structures, which are normalized during processing. Job descriptions are fetched and stored at discovery time, available inline for Lever and Ashby, and via a second request for Greenhouse, Workday, and SmartRecruiters.
 
 ### 3. Filtering
 
@@ -140,9 +140,9 @@ job_{id}_{Company}_{Title}_resume_notes.txt
 
 Each file includes a header with company, title, URL, fit score, and reasoning, followed by the generated content.
 
-A cumulative `output/jobs/index.txt` is updated after each run — one scannable file showing every job processed, its score, and which files were written.
+A cumulative `output/jobs/index.txt` is updated after each run; one scannable file showing every job processed, its score, and which files were written.
 
-SKIP jobs are logged to the console only — no files are written.
+SKIP jobs are logged to the console only, no files are written.
 
 ### Cost
 
