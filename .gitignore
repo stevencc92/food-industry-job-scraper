@@ -6,3 +6,5 @@ __pycache__/
 logs/
 *.plist
 data/jobs.db
+resume.txt
+output/

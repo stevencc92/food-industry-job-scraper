@@ -1,6 +1,7 @@
 """
 scraper.py — Phase 6: Greenhouse + Lever + Workday + Ashby + SmartRecruiters
 Checks all five platforms, deduplicates, saves, and emails new matches.
+Descriptions are fetched and stored per job where available.
 """
 
 import requests
@@ -11,6 +12,87 @@ from companies import (
 )
 from storage import load_seen_jobs, filter_new_jobs, save_jobs, save_run_metrics
 from notifier import send_notification
+
+
+# ─────────────────────────────────────────────
+# DESCRIPTION HELPERS
+# ─────────────────────────────────────────────
+
+def clean_description(text):
+    """
+    Strips excess whitespace from a description string.
+    Returns None if the result is empty.
+    """
+    if not text:
+        return None
+    cleaned = " ".join(text.split())
+    return cleaned if cleaned else None
+
+
+def fetch_greenhouse_description(board_token, job_id):
+    """
+    Greenhouse list endpoint does not include descriptions.
+    Fetches the full job detail from the Greenhouse API.
+    Returns plain text description or None.
+    """
+    url = f"https://boards-api.greenhouse.io/v1/boards/{board_token}/jobs/{job_id}"
+    try:
+        response = requests.get(url, timeout=10)
+        if response.status_code != 200:
+            return None
+        data = response.json()
+        # content is HTML — use absolute_url as fallback context, strip tags simply
+        raw = data.get("content", "") or ""
+        # Basic tag strip — good enough for LLM input
+        import re
+        plain = re.sub(r"<[^>]+>", " ", raw)
+        return clean_description(plain)
+    except Exception:
+        return None
+
+
+def fetch_workday_description(job_url):
+    """
+    Workday list endpoint does not include descriptions.
+    Fetches the job page and extracts visible text as a best-effort description.
+    Returns plain text or None.
+    """
+    try:
+        headers = {"User-Agent": "Mozilla/5.0"}
+        response = requests.get(job_url, headers=headers, timeout=15)
+        if response.status_code != 200:
+            return None
+        import re
+        plain = re.sub(r"<[^>]+>", " ", response.text)
+        # Trim to a reasonable length for LLM input
+        return clean_description(plain[:3000])
+    except Exception:
+        return None
+
+
+def fetch_smartrecruiters_description(company_id, job_id):
+    """
+    SmartRecruiters list endpoint does not include descriptions.
+    Fetches the job detail from the SmartRecruiters public API.
+    Returns plain text description or None.
+    """
+    url = f"https://api.smartrecruiters.com/v1/companies/{company_id}/postings/{job_id}"
+    try:
+        response = requests.get(url, timeout=10)
+        if response.status_code != 200:
+            return None
+        data = response.json()
+        sections = data.get("jobAd", {}).get("sections", {})
+        parts = []
+        for key in ("companyDescription", "jobDescription", "qualifications", "additionalInformation"):
+            text = sections.get(key, {}).get("text", "") or ""
+            if text:
+                import re
+                plain = re.sub(r"<[^>]+>", " ", text)
+                parts.append(plain)
+        return clean_description(" ".join(parts)) if parts else None
+    except Exception:
+        return None
 
 
 # ─────────────────────────────────────────────
@@ -92,6 +174,10 @@ def process_greenhouse(company, seen_jobs, all_new_matches):
         for job in new_jobs:
             print(f"    - {job['title']}")
             print(f"      {job.get('absolute_url', 'No URL')}")
+
+            # Greenhouse requires a second API call per job for description
+            description = fetch_greenhouse_description(token, job["id"])
+
             all_new_matches.append({
                 "id": str(job["id"]),
                 "company": name,
@@ -101,6 +187,7 @@ def process_greenhouse(company, seen_jobs, all_new_matches):
                 "source": "Greenhouse",
                 "category": category,
                 "date_found": datetime.now().strftime("%Y-%m-%d"),
+                "description": description,
             })
     elif relevant:
         print(f"  — {len(relevant)} match(es) found but already seen")
@@ -125,6 +212,10 @@ def process_lever(company, seen_jobs, all_new_matches):
         for job in new_jobs:
             print(f"    - {job['text']}")
             print(f"      {job.get('hostedUrl', 'No URL')}")
+
+            # Lever includes descriptionPlain in the list response — no extra call needed
+            description = clean_description(job.get("descriptionPlain", ""))
+
             all_new_matches.append({
                 "id": job["id"],
                 "company": name,
@@ -134,6 +225,7 @@ def process_lever(company, seen_jobs, all_new_matches):
                 "source": "Lever",
                 "category": category,
                 "date_found": datetime.now().strftime("%Y-%m-%d"),
+                "description": description,
             })
     elif relevant:
         print(f"  — {len(relevant)} match(es) found but already seen")
@@ -228,6 +320,9 @@ def process_workday(company, seen_jobs, all_new_matches):
             print(f"    - {title}")
             print(f"      {job_url}")
 
+            # Workday requires fetching the job page for description
+            description = fetch_workday_description(job_url)
+
             all_new_matches.append({
                 "id": job["id"],
                 "company": name,
@@ -237,6 +332,7 @@ def process_workday(company, seen_jobs, all_new_matches):
                 "source": "Workday",
                 "category": category,
                 "date_found": datetime.now().strftime("%Y-%m-%d"),
+                "description": description,
             })
     elif relevant:
         print(f"  — {len(relevant)} match(es) found but already seen")
@@ -296,6 +392,9 @@ def process_ashby(company, seen_jobs, all_new_matches):
             print(f"    - {title}")
             print(f"      {job_url}")
 
+            # Ashby includes descriptionPlain in the list response — no extra call needed
+            description = clean_description(job.get("descriptionPlain", ""))
+
             all_new_matches.append({
                 "id": job["id"],
                 "company": name,
@@ -305,6 +404,7 @@ def process_ashby(company, seen_jobs, all_new_matches):
                 "source": "Ashby",
                 "category": category,
                 "date_found": datetime.now().strftime("%Y-%m-%d"),
+                "description": description,
             })
     elif relevant:
         print(f"  — {len(relevant)} match(es) found but already seen")
@@ -329,7 +429,7 @@ def fetch_smartrecruiters_jobs(company_id, keyword):
 
     params = {
         "q": keyword,
-        "limit": 100,  # max allowed per request
+        "limit": 100,
     }
 
     try:
@@ -358,7 +458,6 @@ def process_smartrecruiters(company, seen_jobs, all_new_matches):
 
     print(f"\nChecking {name} (SmartRecruiters)...")
 
-    # Search per keyword, deduplicate by job ID within this run
     seen_in_this_run = set()
     all_jobs = []
     errors = 0
@@ -373,7 +472,6 @@ def process_smartrecruiters(company, seen_jobs, all_new_matches):
                 seen_in_this_run.add(job_id)
                 all_jobs.append(job)
 
-    # SmartRecruiters server-side search is broad, so still filter client-side
     relevant = [job for job in all_jobs if is_relevant(job.get("name", ""))]
     new_jobs, seen_jobs = filter_new_jobs(relevant, seen_jobs)
 
@@ -388,6 +486,9 @@ def process_smartrecruiters(company, seen_jobs, all_new_matches):
             print(f"    - {title}")
             print(f"      {job_url}")
 
+            # SmartRecruiters requires a second API call per job for description
+            description = fetch_smartrecruiters_description(company_id, job.get("id", ""))
+
             all_new_matches.append({
                 "id": job["id"],
                 "company": name,
@@ -397,6 +498,7 @@ def process_smartrecruiters(company, seen_jobs, all_new_matches):
                 "source": "SmartRecruiters",
                 "category": category,
                 "date_found": datetime.now().strftime("%Y-%m-%d"),
+                "description": description,
             })
     elif relevant:
         print(f"  — {len(relevant)} match(es) found but already seen")

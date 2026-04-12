@@ -47,7 +47,9 @@ def _create_tables(conn):
             location    TEXT,
             source      TEXT,
             category    TEXT,
-            date_found  TEXT
+            date_found  TEXT,
+            description TEXT,
+            processed   BOOLEAN DEFAULT 0
         )
     """)
 
@@ -68,14 +70,22 @@ def _create_tables(conn):
         )
     """)
 
-    # Migration: add smartrecruiters_found to runs if it doesn't exist yet.
-    # This handles databases created before SmartRecruiters was added —
-    # existing run rows will show NULL for this column, which is fine.
-    existing_columns = [
+    # Migrations — safe to run on existing databases, existing data never lost
+    existing_job_columns = [
+        row[1] for row in conn.execute("PRAGMA table_info(jobs)").fetchall()
+    ]
+    existing_run_columns = [
         row[1] for row in conn.execute("PRAGMA table_info(runs)").fetchall()
     ]
-    if "smartrecruiters_found" not in existing_columns:
+
+    if "smartrecruiters_found" not in existing_run_columns:
         conn.execute("ALTER TABLE runs ADD COLUMN smartrecruiters_found INTEGER")
+
+    if "description" not in existing_job_columns:
+        conn.execute("ALTER TABLE jobs ADD COLUMN description TEXT")
+
+    if "processed" not in existing_job_columns:
+        conn.execute("ALTER TABLE jobs ADD COLUMN processed BOOLEAN DEFAULT 0")
 
     conn.commit()
 
@@ -125,19 +135,25 @@ def save_jobs(new_jobs):
     Inserts new job matches into the database.
     INSERT OR IGNORE means duplicate IDs are silently skipped —
     the primary key enforces deduplication at the DB level.
+    Includes description if present in the job dict.
     """
     conn = get_connection()
     try:
         conn.executemany("""
             INSERT OR IGNORE INTO jobs
-                (id, company, title, url, location, source, category, date_found)
+                (id, company, title, url, location, source, category, date_found, description)
             VALUES
-                (:id, :company, :title, :url, :location, :source, :category, :date_found)
-        """, new_jobs)
+                (:id, :company, :title, :url, :location, :source, :category, :date_found, :description)
+        """, [_normalize_job(j) for j in new_jobs])
         conn.commit()
         print(f"  [storage] {len(new_jobs)} new job(s) saved to {DB_PATH}")
     finally:
         conn.close()
+
+
+def _normalize_job(job):
+    """Ensures every job dict has a description key before insert."""
+    return {**job, "description": job.get("description") or None}
 
 
 def load_jobs():
