@@ -280,7 +280,7 @@ To adapt this for your own job search:
 
 **Author: Steven Cockrum**
 
-Computer Science student specializing in Data Analytics at Southern New Hampshire University, transitioning from 13+ years in culinary operations into data analytics.
+Computer Science student at Southern New Hampshire University, transitioning from 13+ years in culinary operations into data analytics.
 
 Portfolio projects:
 - Healthcare Food Waste Analysis
