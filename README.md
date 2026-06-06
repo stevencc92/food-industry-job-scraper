@@ -4,7 +4,7 @@ A Python-based job discovery and application preparation pipeline that monitors 
 
 The system pulls job postings directly from company hiring platforms, filters for relevant roles, stores them in a SQLite database, and sends a daily email digest of newly discovered opportunities.
 
-An **AI-powered agent layer** then evaluates each job for fit, generates a tailored cover letter draft, and produces resume bullet suggestions, all written to local files for your review.
+A **batch enrichment pass** then runs over the SQLite table scoring each unprocessed job for fit, generating a tailored cover letter draft and resume bullet suggestions, and marking each row processed. Re-running picks up only new jobs.
 
 Originally built to support a targeted job search in **food tech, restaurant technology, contract food service, and CPG food companies**, but the architecture is designed to work with any company using supported ATS platforms.
 
