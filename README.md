@@ -157,7 +157,7 @@ food-industry-job-scraper/
 
 ├── scraper.py          # Main ingestion pipeline
 ├── storage.py          # SQLite persistence + deduplication
-├── agent.py            # AI-powered application material generator
+├── agent.py            # Batch enrichment pass — scores jobs, writes output, marks processed
 ├── notifier.py         # Email digest notifications
 ├── companies.py        # Master company registry
 ├── rename_outputs.py   # One-off utility to rename legacy output files
